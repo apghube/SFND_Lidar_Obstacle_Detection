@@ -68,49 +68,60 @@ std::unordered_set<int> Ransac(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int ma
 
 	// TODO: Fill in this function
 	// For max iterations 
-    for(int i=0;i<maxIterations;i++)
+    for(int mi=0;mi<maxIterations;mi++)
 	{
 
 	  // Randomly sample subset and fit line
 	  std::unordered_set<int> randpoint;
-	  int k=2; //two points to make a line
+	  int n=3; //three points to make a plane
 	  
-	  while(k>0)
+	  while(n>0)
 	  {
         randpoint.insert(rand () % cloud->points.size());
-		k--;
+		n--;
 	  }
       
-
 	  auto it=randpoint.begin();
 	  float x1=cloud->points[*it].x; 
 	  float y1=cloud->points[*it].y;
+      float z1=cloud->points[*it].z;
 	  it++;
 	  float x2=cloud->points[*it].x;
 	  float y2=cloud->points[*it].y;
+      float z2=cloud->points[*it].z;
+      it++;
+      float x3=cloud->points[*it].x;
+	  float y3=cloud->points[*it].y;
+      float z3=cloud->points[*it].z;
+      
+      float i=( ((y2-y1)*(z3-z1))-((z2-z1)*(y3-y1)) );
+      float j=( ((z2-z1)*(x3-x1))-((x2-x1)*(z3-z1)) );
+      float k=( ((x2-x1)*(y3-y1))-((y2-y1)*(x3-x1)) );
 
-	  float A= y1-y2;
-	  float B= x2-x1;
-	  float C= (x1*y2)-(x2*y1);
+	  float A= i;
+	  float B= j;
+	  float C= k;
+      float D=-( (i*x1) + (j*y1) + (k*z1) );
 
-	  for(int j=0; j< cloud->points.size();j++)
+	  for(int idx=0; idx< cloud->points.size();idx++)
 	  {
 
-        if(randpoint.count(j)>0) //ignore if the point is already among those two points on line
+        if(randpoint.count(idx)>0) //ignore if point has used to form plane
 		   continue;
 
-		pcl::PointXYZ point3;
-        point3=cloud->points[j];
-		float x3=point3.x;
-		float y3=point3.y;
+		pcl::PointXYZ point4;
+        point4=cloud->points[idx];
+		float x4=point4.x;
+		float y4=point4.y;
+        float z4=point4.z;
 		
         // Measure distance between every point and fitted line
 	    float distance ;
-	    distance = fabs(A*x3 + B*y3 + C)/sqrt(A*A + B*B);
+	    distance = fabs(A*x4 + B*y4 + C*z4 + D)/sqrt(A*A + B*B + C*C);
         // If distance is smaller than threshold count it as inlier
 	    if(distanceTol >= distance)
 	    {
-          randpoint.insert(j); //insert the indices of the inliers
+          randpoint.insert(idx); //insert the indices of the inliers
 	    }
 	  }
 	  if(randpoint.size()>inliersResult.size())
@@ -129,7 +140,7 @@ int main ()
 	pcl::visualization::PCLVisualizer::Ptr viewer = initScene();
 
 	// Create data
-	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = CreateData();
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = CreateData3D();
 	
 
 	// TODO: Change the max iteration and distance tolerance arguments for Ransac function
