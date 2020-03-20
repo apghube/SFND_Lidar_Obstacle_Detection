@@ -54,9 +54,26 @@ void simpleHighway(pcl::visualization::PCLVisualizer::Ptr& viewer)
     // TODO:: Create point processor
    //ProcessPointClouds<pcl::PointXYZ> pointProc1;  //object is created on stack
     ProcessPointClouds<pcl::PointXYZ>* pointProc = new ProcessPointClouds<pcl::PointXYZ>(); //object is created on heap
+    
+    /* Cloud Segmentation and Obstacle Filtering */
     std::pair<pcl::PointCloud<pcl::PointXYZ>::Ptr, pcl::PointCloud<pcl::PointXYZ>::Ptr> segmentCloud = pointProc->SegmentPlane(cloud_input, 100, 0.2);
-    renderPointCloud(viewer,segmentCloud.first,"obstCloud",Color(1,0,0)); //r,g,b
-    renderPointCloud(viewer,segmentCloud.second,"planeCloud",Color(0,1,0));
+    //renderPointCloud(viewer,segmentCloud.first,"obstCloud",Color(1,0,0)); //r,g,b
+    //renderPointCloud(viewer,segmentCloud.second,"planeCloud",Color(0,1,0));
+
+    /* Cloud Clustering */
+
+    std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloudClusters = pointProc->Clustering(segmentCloud.first, 1, 3, 30);
+
+    int clusterId = 0;
+    std::vector<Color> colors = {Color(1,0,0), Color(1,1,0), Color(0,0,1)};
+
+    for(pcl::PointCloud<pcl::PointXYZ>::Ptr cluster : cloudClusters)
+       {
+            std::cout << "cluster size ";
+            pointProc->numPoints(cluster);
+            renderPointCloud(viewer,cluster,"obstCloud"+std::to_string(clusterId),colors[clusterId%colors.size()]);
+            ++clusterId;
+       }
 }
 
 
