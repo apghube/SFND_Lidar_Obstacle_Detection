@@ -193,7 +193,7 @@ std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::C
     ec.setMaxClusterSize (maxSize);
     ec.setSearchMethod (tree);
     ec.setInputCloud (cloud);
-    ec.extract(cluster_indices);
+    ec.extract(cluster_indices); //forms clusters and returns the indices of those clusters 
 
     for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
    {

@@ -65,7 +65,7 @@ struct KdTree
 			return;
 		}
 		else
-		{
+		{ //target[0]=x, target[1]=y
 			if( (((target[0]-distanceTol) <= node->point[0]) && ((target[0]+distanceTol) >= node->point[0])) && (((target[1]-distanceTol) <= node->point[1]) && ((target[1]+distanceTol) >= node->point[1]))) 
 		   {
                 float distance=sqrt(((node->point[0]- target[0]) * (node->point[0]- target[0])) + ((node->point[1]- target[1]) * (node->point[1]- target[1])));
