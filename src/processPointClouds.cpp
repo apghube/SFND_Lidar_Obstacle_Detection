@@ -29,12 +29,49 @@ typename pcl::PointCloud<PointT>::Ptr ProcessPointClouds<PointT>::FilterCloud(ty
     auto startTime = std::chrono::steady_clock::now();
 
     // TODO:: Fill in the function to do voxel grid point reduction and region based filtering
+    //create a voxel grid
+    pcl::VoxelGrid<PointT> vg;
+    typename pcl::PointCloud<PointT>::Ptr cloud_filtered (new pcl::PointCloud<PointT>);
+    vg.setInputCloud (cloud);
+    vg.setLeafSize (filterRes, filterRes, filterRes);
+    vg.filter (*cloud_filtered);
+
+    //Crop Box: crop the points within min and max points
+    typename pcl::PointCloud<PointT>::Ptr cloud_region (new pcl::PointCloud<PointT>);
+    pcl::CropBox<PointT> region(true);
+    region.setMin(minPoint);
+    region.setMax(maxPoint);
+    region.setInputCloud(cloud_filtered);
+    region.filter(*cloud_region);
+
+    //Get all indices (inliers) of the Ego vehicle's Roof points
+    //Ego vehicle's Roof points:
+    Eigen::Vector4f minPointE=Eigen::Vector4f (-1.5, -1.7, -1, 1);
+    Eigen::Vector4f maxPointE=Eigen::Vector4f (2.6, 1.7, -4, 1);
+    std::vector<int> indices;
+    pcl::PointIndices::Ptr inliers {new pcl::PointIndices};
+
+    pcl::CropBox<PointT> egoroof(true);
+    egoroof.setMin(minPointE);
+    egoroof.setMax(minPointE);
+    egoroof.setInputCloud(cloud_region);
+    egoroof.filter(indices);
+
+    for(int idx:indices)
+        inliers->indices.push_back(idx);
+
+    //Extracting the cloud region and filtering the inliers:ego vehicle points
+    pcl::ExtractIndices<PointT> extract;
+    extract.setInputCloud (cloud_region);
+    extract.setIndices (inliers); 
+    extract.setNegative (true); //true=remove inliers
+    extract.filter (*cloud_region);
 
     auto endTime = std::chrono::steady_clock::now();
     auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
     std::cout << "filtering took " << elapsedTime.count() << " milliseconds" << std::endl;
 
-    return cloud;
+    return cloud_region;
 
 }
 
@@ -52,8 +89,8 @@ std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT
 
      // Create the filtering object
     extract.setInputCloud (cloud);
-    extract.setIndices (inliers);
-    extract.setNegative (true); //inverted filter behavior
+    extract.setIndices (inliers); //get points from the cloud other than these inliers:plane
+    extract.setNegative (true); //true=remove inliers
     extract.filter (*obstacle_cloud);
 
     std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> segResult(obstacle_cloud, plane_cloud);
@@ -153,7 +190,8 @@ std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT
     // Segment the largest planar component from the cloud
     seg.setInputCloud (cloud);
     seg.segment (*inliers, *coefficients);*/
-
+    
+    // Segment the largest planar component from the cloud
     std::unordered_set<int> inliersSet = RansacPlane(cloud, maxIterations, distanceThreshold);
     pcl::PointIndices::Ptr inliers{new pcl::PointIndices};
     for (int i : inliersSet)
