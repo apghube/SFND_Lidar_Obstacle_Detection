@@ -45,22 +45,20 @@ typename pcl::PointCloud<PointT>::Ptr ProcessPointClouds<PointT>::FilterCloud(ty
     region.filter(*cloud_region);
 
     //Get all indices (inliers) of the Ego vehicle's Roof points
-    //Ego vehicle's Roof points:
-    Eigen::Vector4f minPointE=Eigen::Vector4f (-1.5, -1.7, -1, 1);
-    Eigen::Vector4f maxPointE=Eigen::Vector4f (2.6, 1.7, -4, 1);
+    //Ego vehicle's Roof points: 
     std::vector<int> indices;
     pcl::PointIndices::Ptr inliers {new pcl::PointIndices};
 
     pcl::CropBox<PointT> egoroof(true);
-    egoroof.setMin(minPointE);
-    egoroof.setMax(minPointE);
+    egoroof.setMin(Eigen::Vector4f (-1.5, -1.7, -1, 1));
+    egoroof.setMax(Eigen::Vector4f (2.6, 1.7, -0.4, 1));
     egoroof.setInputCloud(cloud_region);
     egoroof.filter(indices);
 
     for(int idx:indices)
         inliers->indices.push_back(idx);
 
-    //Extracting the cloud region and filtering the inliers:ego vehicle points
+    //Extracting the cloud_region and filtering the inliers:ego vehicle points
     pcl::ExtractIndices<PointT> extract;
     extract.setInputCloud (cloud_region);
     extract.setIndices (inliers); 
@@ -80,9 +78,9 @@ template<typename PointT>
 std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::SeparateClouds(pcl::PointIndices::Ptr inliers, typename pcl::PointCloud<PointT>::Ptr cloud) 
 {
   // TODO: Create two new point clouds, one cloud with obstacles and other with segmented plane
-  pcl::ExtractIndices<pcl::PointXYZ> extract;
-   pcl::PointCloud<pcl::PointXYZ>::Ptr plane_cloud (new pcl::PointCloud<pcl::PointXYZ>); //planar cloud = road
-   pcl::PointCloud<pcl::PointXYZ>::Ptr obstacle_cloud (new pcl::PointCloud<pcl::PointXYZ>); //obstacle cloud
+  pcl::ExtractIndices<PointT> extract;
+  typename pcl::PointCloud<PointT>::Ptr plane_cloud (new pcl::PointCloud<PointT>); //planar cloud = road
+   typename pcl::PointCloud<PointT>::Ptr obstacle_cloud (new pcl::PointCloud<PointT>); //obstacle cloud
 
     for(int index:inliers->indices)
         plane_cloud->points.push_back(cloud->points[index]);
@@ -98,7 +96,7 @@ std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT
 }
 /*RansacPlane Integration in ProcessPointClouds*/
 template<typename PointT>
-std::unordered_set<int> ProcessPointClouds<PointT>::RansacPlane(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int maxIterations, float distanceTol)
+std::unordered_set<int> ProcessPointClouds<PointT>::RansacPlane(typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations, float distanceTol)
 {
 	std::unordered_set<int> inliersResult;
 	srand(time(NULL));
@@ -146,13 +144,13 @@ std::unordered_set<int> ProcessPointClouds<PointT>::RansacPlane(pcl::PointCloud<
         if(randpoint.count(idx)>0) //ignore if point has used to form plane
 		   continue;
 
-		pcl::PointXYZ point4;
+		PointT point4;
     point4=cloud->points[idx];
 		float x4=point4.x;
 		float y4=point4.y;
     float z4=point4.z;
 		
-      // Measure distance between every point and fitted line
+      // Measure distance between every point and fitted Plane
 	    float distance ;
 	    distance = fabs(A*x4 + B*y4 + C*z4 + D)/sqrt(A*A + B*B + C*C);
       // If distance is smaller than threshold count it as inlier
@@ -165,7 +163,7 @@ std::unordered_set<int> ProcessPointClouds<PointT>::RansacPlane(pcl::PointCloud<
 	    inliersResult=randpoint;
 	}
 
-	// Return indicies of inliers from fitted line with most inliers
+	// Return indicies of inliers from fitted plane with most inliers
 	return inliersResult;
 
 }
@@ -221,11 +219,11 @@ std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::C
     std::vector<typename pcl::PointCloud<PointT>::Ptr> clusters;
 
     // TODO:: Fill in the function to perform euclidean clustering to group detected obstacles
-    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
+    typename pcl::search::KdTree<PointT>::Ptr tree (new pcl::search::KdTree<PointT>);
     tree->setInputCloud (cloud);
  
     std::vector<pcl::PointIndices> cluster_indices;
-    pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+    pcl::EuclideanClusterExtraction<PointT> ec;
     ec.setClusterTolerance (clusterTolerance); 
     ec.setMinClusterSize (minSize);
     ec.setMaxClusterSize (maxSize);

@@ -62,7 +62,7 @@ void simpleHighway(pcl::visualization::PCLVisualizer::Ptr& viewer)
 
     /* Cloud Clustering */
 
-    std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloudClusters = pointProc->Clustering(segmentCloud.first, 1, 3, 30);
+   std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloudClusters = pointProc->Clustering(segmentCloud.first, 1, 3, 30);
 
     int clusterId = 0;
     std::vector<Color> colors = {Color(1,0,0), Color(1,1,0), Color(0,0,1)};
@@ -77,7 +77,7 @@ void simpleHighway(pcl::visualization::PCLVisualizer::Ptr& viewer)
             ++clusterId;
        }
 }
-//template<typename PointT>
+
 void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer)
 {
   // ----------------------------------------------------
@@ -92,8 +92,34 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer)
   // -----Downsampling the Cityblock PCD using Voxel grid filter     -----
   // ---------------------------------------------------------------------
   
-  pcl::PointCloud<pcl::PointXYZI>::Ptr filterCloud = pointProcI->FilterCloud(inputCloud, 0.2 , Eigen::Vector4f (-8, -4, -2, 1), Eigen::Vector4f (6,6,1, 1));
-  renderPointCloud(viewer,filterCloud,"filterCloud");
+  pcl::PointCloud<pcl::PointXYZI>::Ptr filterCloud = pointProcI->FilterCloud(inputCloud, 0.2 , Eigen::Vector4f (-8, -4, -2, 1), Eigen::Vector4f (30,6,1, 1));
+  //renderPointCloud(viewer,filterCloud,"filterCloud");
+
+  // ---------------------------------------------------------------------
+  // -----Segmentation: road and obstacles -------------------------------
+  //-----------------------------------------------------------------------
+
+  std::pair<pcl::PointCloud<pcl::PointXYZI>::Ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr> segmentCloud = pointProcI->SegmentPlane(filterCloud, 100, 0.2);
+  //renderPointCloud(viewer,segmentCloud.first,"obstCloud",Color(1,0,0)); //r,g,b
+  //renderPointCloud(viewer,segmentCloud.second,"planeCloud",Color(0,1,0));
+
+  // ---------------------------------------------------------------------
+  // ---------------------Cloud Clustering -------------------------------
+  //-----------------------------------------------------------------------
+  std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> cloudClusters = pointProcI->Clustering(segmentCloud.first, 0.38, 9, 400);
+  int clusterId = 0;
+  std::vector<Color> colors = {Color(1,0,0), Color(1,1,0), Color(0,0,1)};
+  renderPointCloud(viewer,segmentCloud.second,"planeCloud",Color(0,1,0));
+    for(pcl::PointCloud<pcl::PointXYZI>::Ptr cluster : cloudClusters)
+       {
+            std::cout << "cluster size ";
+            pointProcI->numPoints(cluster);
+            renderPointCloud(viewer,cluster,"obstCloud"+std::to_string(clusterId),colors[clusterId%colors.size()]);
+            Box box = pointProcI->BoundingBox(cluster);
+            renderBox(viewer,box,clusterId);
+            ++clusterId;
+       }
+
 
 }
 
