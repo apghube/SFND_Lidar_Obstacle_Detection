@@ -235,7 +235,7 @@ std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::C
    {
     typename pcl::PointCloud<PointT>::Ptr cloud_cluster (new pcl::PointCloud<PointT>);
     for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); ++pit)
-      cloud_cluster->points.push_back (cloud->points[*pit]); 
+       cloud_cluster->points.push_back (cloud->points[*pit]); 
     
     cloud_cluster->width = cloud_cluster->points.size ();
     cloud_cluster->height = 1;
